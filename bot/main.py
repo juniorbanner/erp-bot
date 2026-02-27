@@ -49,7 +49,8 @@ async def on_shutdown(bot: Bot):
 
 
 async def main():
-    bot = Bot(token=settings.BOT_TOKEN, parse_mode=ParseMode.HTML)
+    from aiogram.client.default import DefaultBotProperties
+    bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
     # Use Redis if available, fallback to Memory
     try:
