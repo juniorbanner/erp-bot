@@ -1,1 +1,9 @@
-{ "build": { "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile.bot" }, "deploy": { "startCommand": "python -m bot.main" } } 
+{
+    "build": {
+      "builder": "DOCKERFILE",
+      "dockerfilePath": "Dockerfile.bot"
+    },
+    "deploy": {
+      "startCommand": "python seed.py"
+    }
+  }
