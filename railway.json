@@ -4,6 +4,6 @@
       "dockerfilePath": "Dockerfile.bot"
     },
     "deploy": {
-      "startCommand": "python seed.py"
+      "startCommand": "python -m bot.main"
     }
   }
