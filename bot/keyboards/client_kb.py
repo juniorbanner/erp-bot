@@ -1,12 +1,11 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
-from bot.config import settings
 
 
 def client_main_keyboard(webapp_url: str | None = None) -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     if webapp_url:
-        builder.row(KeyboardButton(text="🛒 Магазин", web_app={"url": webapp_url}))
+        builder.row(KeyboardButton(text="🛒 Магазин", web_app=WebAppInfo(url=webapp_url)))
     builder.row(
         KeyboardButton(text="💰 Мой баланс"),
         KeyboardButton(text="📜 История покупок"),
