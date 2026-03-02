@@ -2,18 +2,20 @@ import hmac
 import hashlib
 import json
 import time
+import logging
 from urllib.parse import unquote
 from fastapi import HTTPException, Header
 from bot.config import settings
 
+logger = logging.getLogger(__name__)
+
 
 def verify_telegram_init_data(init_data: str) -> dict:
-    """
-    Official Telegram WebApp initData validation.
-    https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
-    """
     if not init_data:
+        logger.error("initData is empty!")
         raise HTTPException(status_code=401, detail="Missing initData")
+
+    logger.info(f"initData received, length: {len(init_data)}")
 
     parsed = {}
     for item in init_data.split("&"):
@@ -25,9 +27,12 @@ def verify_telegram_init_data(init_data: str) -> dict:
     if not received_hash:
         raise HTTPException(status_code=401, detail="Missing hash in initData")
 
-    # Check expiration (24 hours)
     auth_date = int(parsed.get("auth_date", 0))
-    if time.time() - auth_date > 86400:
+    age = time.time() - auth_date
+    logger.info(f"auth_date age: {age:.0f} seconds")
+
+    # Allow up to 7 days
+    if age > 604800:
         raise HTTPException(status_code=401, detail="initData expired")
 
     data_check_string = "\n".join(
@@ -46,7 +51,10 @@ def verify_telegram_init_data(init_data: str) -> dict:
         digestmod=hashlib.sha256,
     ).hexdigest()
 
+    logger.info(f"expected: {expected[:10]}..., received: {received_hash[:10]}...")
+
     if not hmac.compare_digest(expected, received_hash):
+        logger.error("Hash mismatch!")
         raise HTTPException(status_code=401, detail="Invalid initData signature")
 
     user_data = json.loads(parsed["user"])
@@ -54,5 +62,4 @@ def verify_telegram_init_data(init_data: str) -> dict:
 
 
 async def get_current_twa_user(x_init_data: str = Header(None)):
-    """FastAPI dependency that returns verified Telegram user dict."""
     return verify_telegram_init_data(x_init_data or "")
