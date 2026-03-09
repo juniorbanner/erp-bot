@@ -12,10 +12,7 @@ logger = logging.getLogger(__name__)
 
 def verify_telegram_init_data(init_data: str) -> dict:
     if not init_data:
-        logger.error("initData is empty!")
         raise HTTPException(status_code=401, detail="Missing initData")
-
-    logger.info(f"initData received, length: {len(init_data)}")
 
     parsed = {}
     for item in init_data.split("&"):
@@ -28,11 +25,7 @@ def verify_telegram_init_data(init_data: str) -> dict:
         raise HTTPException(status_code=401, detail="Missing hash in initData")
 
     auth_date = int(parsed.get("auth_date", 0))
-    age = time.time() - auth_date
-    logger.info(f"auth_date age: {age:.0f} seconds")
-
-    # Allow up to 7 days
-    if age > 604800:
+    if time.time() - auth_date > 604800:
         raise HTTPException(status_code=401, detail="initData expired")
 
     data_check_string = "\n".join(
@@ -51,15 +44,31 @@ def verify_telegram_init_data(init_data: str) -> dict:
         digestmod=hashlib.sha256,
     ).hexdigest()
 
-    logger.info(f"expected: {expected[:10]}..., received: {received_hash[:10]}...")
-
     if not hmac.compare_digest(expected, received_hash):
-        logger.error("Hash mismatch!")
         raise HTTPException(status_code=401, detail="Invalid initData signature")
 
     user_data = json.loads(parsed["user"])
     return user_data
 
 
-async def get_current_twa_user(x_init_data: str = Header(None)):
-    return verify_telegram_init_data(x_init_data or "")
+async def get_current_twa_user(
+    x_init_data: str = Header(None),
+    x_user_id: str = Header(None),
+):
+    """
+    Verifies Telegram WebApp user.
+    Falls back to X-User-Id header for Telegram Desktop
+    which doesn't provide initData.
+    """
+    if x_init_data:
+        return verify_telegram_init_data(x_init_data)
+
+    # Fallback for Telegram Desktop (no initData)
+    if x_user_id:
+        logger.warning(f"Using fallback X-User-Id: {x_user_id} (Telegram Desktop)")
+        try:
+            return {"id": int(x_user_id)}
+        except ValueError:
+            raise HTTPException(status_code=401, detail="Invalid user id")
+
+    raise HTTPException(status_code=401, detail="Missing initData")
